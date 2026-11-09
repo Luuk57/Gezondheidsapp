@@ -144,7 +144,7 @@
     <!-- Firebase SDK & App Script -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, add슐, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyBmdTCE0AE8CQ9R-DL36bifn6p9hPwtm0s",
@@ -157,13 +157,19 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        
+        // Expose functions globally to window so inline onclick handlers can use them
         window.db = db;
         window.collection = collection;
         window.addDoc = addDoc;
         window.getDocs = getDocs;
 
         document.getElementById('sync-status').innerText = "Cloud Online 🟢";
-        loadAllData();
+        
+        // Standaard datums invullen voor vandaag op tab 1
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dialysis-date-1').value = today;
+        document.getElementById('dialysis-date-2').value = today;
     </script>
 
     <script>
@@ -214,6 +220,10 @@
         // Functies om data op te slaan naar Firebase
         async function saveDialysis() {
             try {
+                if (!window.db) {
+                    alert("Database nog niet verbonden. Wacht een moment.");
+                    return;
+                }
                 const data = {
                     date1: document.getElementById('dialysis-date-1').value,
                     date2: document.getElementById('dialysis-date-2').value,
@@ -238,13 +248,12 @@
                 await window.addDoc(window.collection(window.db, "voeding"), data);
                 document.getElementById('food-desc').value = '';
                 alert("Voeding/Drinken opgeslagen!");
-                loadAllData();
             } catch (e) {
                 alert("Fout: " + e.message);
             }
         }
 
-        async function saveMedication() {
+        async function saveMedicijn() {
             try {
                 const data = {
                     name: document.getElementById('med-name').value,
@@ -254,11 +263,13 @@
                 await window.addDoc(window.collection(window.db, "medicijnen"), data);
                 document.getElementById('med-name').value = '';
                 alert("Medicijn opgeslagen!");
-                loadAllData();
             } catch (e) {
                 alert("Fout: " + e.message);
             }
         }
+        
+        // Alias voor knop
+        function saveMedication() { saveMedicijn(); }
 
         async function saveTransport() {
             try {
@@ -270,15 +281,9 @@
                 await window.addDoc(window.collection(window.db, "vervoer"), data);
                 document.getElementById('transport-desc').value = '';
                 alert("Rit ingepland!");
-                loadAllData();
             } catch (e) {
                 alert("Fout: " + e.message);
             }
-        }
-
-        async function loadAllData() {
-            if (!window.db) return;
-            // Hier kun je evt. lijsten ophalen en tonen in de UI
         }
     </script>
 </body>
