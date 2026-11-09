@@ -33,22 +33,22 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-600">Datum 1 (Start avond):</label>
-                            <input type="date" id="dialysis-date-1" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm">
+                            <input type="date" id="dialysis-date-1" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm" oninput="autoSaveDraft()">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600">Datum 2 (Einde ochtend):</label>
-                            <input type="date" id="dialysis-date-2" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm">
+                            <input type="date" id="dialysis-date-2" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm" oninput="autoSaveDraft()">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-600">Pre-gewicht (kg):</label>
-                            <input type="number" step="0.1" id="pre-weight" placeholder="bijv. 112.5" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm" oninput="calculateUF()">
+                            <input type="number" step="0.1" id="pre-weight" placeholder="bijv. 112.5" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm" oninput="calculateUF(); autoSaveDraft();">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600">Drooggewicht (kg):</label>
-                            <input type="number" step="0.1" id="dry-weight" value="109" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm font-medium text-indigo-600" oninput="calculateUF()">
+                            <input type="number" step="0.1" id="dry-weight" value="109" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm font-medium text-indigo-600" oninput="calculateUF(); autoSaveDraft();">
                         </div>
                     </div>
 
@@ -62,23 +62,22 @@
                     <div class="grid grid-cols-3 gap-2">
                         <div>
                             <label class="block text-xs font-medium text-gray-600">Post-gewicht:</label>
-                            <input type="number" step="0.1" id="post-weight" placeholder="kg" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm">
+                            <input type="number" step="0.1" id="post-weight" placeholder="kg" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm" oninput="autoSaveDraft()">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600">Gebruikte UF:</label>
-                            <input type="number" step="0.1" id="used-uf" placeholder="L" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm">
+                            <input type="number" step="0.1" id="used-uf" placeholder="L" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm" oninput="autoSaveDraft()">
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-gray-600">Werkelijke UF:</label>
-                            <input type="number" step="0.1" id="actual-uf" placeholder="L" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm">
+                            <input type="number" step="0.1" id="actual-uf" placeholder="L" class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm" oninput="autoSaveDraft()">
                         </div>
                     </div>
 
                     <!-- Verpleging Selectie (Meerdere selecteerbaar) -->
                     <div>
                         <label class="block text-xs font-medium text-gray-600 mb-1">Aanwezige Verpleging (Houd Ctrl/Cmd ingedrukt om er meerdere te kiezen):</label>
-                        <select id="nurses-select" multiple class="w-full p-2 border rounded-xl bg-gray-50 text-sm h-24">
-                            <!-- Standaard voorbeeldnamen, je kunt ze hieronder zelf uitbreiden of aanpassen -->
+                        <select id="nurses-select" multiple class="w-full p-2 border rounded-xl bg-gray-50 text-sm h-24" onchange="autoSaveDraft()">
                             <option value="Jan">Jan</option>
                             <option value="Sophie">Sophie</option>
                             <option value="Mohammed">Mohammed</option>
@@ -90,10 +89,10 @@
                     <!-- Verslag / Notities -->
                     <div>
                         <label class="block text-xs font-medium text-gray-600">Verslag / Bijzonderheden:</label>
-                        <textarea id="dialysis-report" rows="2" placeholder="Bijv. rustige nacht, geen krampen..." class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm"></textarea>
+                        <textarea id="dialysis-report" rows="2" placeholder="Bijv. rustige nacht, geen krampen..." class="w-full mt-1 p-2 border rounded-xl bg-gray-50 text-sm" oninput="autoSaveDraft()"></textarea>
                     </div>
 
-                    <button onclick="saveDialysis()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold shadow-md active:bg-indigo-700">Dialyse Sessie Opslaan</button>
+                    <button onclick="saveDialysis()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold shadow-md active:bg-indigo-700">Dialyse Sessie Definitief Opslaan</button>
                 </div>
             </div>
         </section>
@@ -198,9 +197,8 @@
 
         document.getElementById('sync-status').innerText = "Cloud Online 🟢";
         
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('dialysis-date-1').value = today;
-        document.getElementById('dialysis-date-2').value = today;
+        // Laad eventuele opgeslagen concept data bij opstarten
+        loadDraft();
     </script>
 
     <script>
@@ -214,6 +212,53 @@
             document.getElementById('tab-' + tabName).classList.add('active');
             document.getElementById('nav-' + tabName).classList.remove('text-gray-400');
             document.getElementById('nav-' + tabName).classList.add('text-indigo-600');
+        }
+
+        // Functie om automatisch tijdelijk op te slaan in de browser (LocalStorage)
+        function autoSaveDraft() {
+            const nursesSelect = document.getElementById('nurses-select');
+            const selectedNurses = Array.from(nursesSelect.selectedOptions).map(opt => opt.value);
+
+            const draft = {
+                date1: document.getElementById('dialysis-date-1').value,
+                date2: document.getElementById('dialysis-date-2').value,
+                preWeight: document.getElementById('pre-weight').value,
+                dryWeight: document.getElementById('dry-weight').value,
+                postWeight: document.getElementById('post-weight').value,
+                usedUF: document.getElementById('used-uf').value,
+                actualUF: document.getElementById('actual-uf').value,
+                nurses: selectedNurses,
+                report: document.getElementById('dialysis-report').value
+            };
+            localStorage.setItem('tasker_dialysis_draft', JSON.stringify(draft));
+        }
+
+        // Functie om tijdelijk opgeslagen concept terug te zetten
+        function loadDraft() {
+            const saved = localStorage.getItem('tasker_dialysis_draft');
+            if (saved) {
+                const draft = JSON.parse(saved);
+                if (draft.date1) document.getElementById('dialysis-date-1').value = draft.date1;
+                if (draft.date2) document.getElementById('dialysis-date-2').value = draft.date2;
+                if (draft.preWeight) document.getElementById('pre-weight').value = draft.preWeight;
+                if (draft.dryWeight) document.getElementById('dry-weight').value = draft.dryWeight;
+                if (draft.postWeight) document.getElementById('post-weight').value = draft.postWeight;
+                if (draft.usedUF) document.getElementById('used-uf').value = draft.usedUF;
+                if (draft.actualUF) document.getElementById('actual-uf').value = draft.actualUF;
+                if (draft.report) document.getElementById('dialysis-report').value = draft.report;
+                
+                if (draft.nurses && Array.isArray(draft.nurses)) {
+                    const nursesSelect = document.getElementById('nurses-select');
+                    Array.from(nursesSelect.options).forEach(opt => {
+                        opt.selected = draft.nurses.includes(opt.value);
+                    });
+                }
+                calculateUF();
+            } else {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('dialysis-date-1').value = today;
+                document.getElementById('dialysis-date-2').value = today;
+            }
         }
 
         function calculateUF() {
@@ -252,7 +297,6 @@
                     return;
                 }
 
-                // Verzamel alle geselecteerde verpleegkundigen
                 const nursesSelect = document.getElementById('nurses-select');
                 const selectedNurses = Array.from(nursesSelect.selectedOptions).map(opt => opt.value);
 
@@ -270,7 +314,11 @@
                 };
 
                 await window.addDoc(window.collection(window.db, "dialyse"), data);
-                alert("Dialyse sessie inclusief verslag en verpleging opgeslagen in je Datakluis!");
+                
+                // Wis het concept zodra het definitief is opgeslagen in de cloud
+                localStorage.removeItem('tasker_dialysis_draft');
+                
+                alert("Dialyse sessie definitief opgeslagen in je Datakluis!");
             } catch (e) {
                 alert("Fout bij opslaan: " + e.message);
             }
