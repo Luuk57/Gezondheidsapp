@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasker - Dialyse & Gezondheidsmonitor</title>
+    <!-- Tailwind CSS voor strakke, moderne mobiele styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 pb-20">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="flex justify-between items-center max-w-md mx-auto">
+            <h1 class="text-xl font-bold">Tasker 🩺</h1>
+            <span id="sync-status" class="text-xs bg-indigo-700 px-2 py-1 rounded-full">Verbinden...</span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-md mx-auto p-4 space-y-4">
+
+        <!-- TAB 1: DIALYSE & VOCHT -->
+        <section id="tab-dialyse" class="tab-content active space-y-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-semibold text-indigo-600 mb-3">Nachtdialyse & UF Berekening</h2>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Datum 1 (Start avond):</label>
+                        <input type="date" id="dialysis-date-1" class="w-full mt-1 p-2 border rounded-xl bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Datum 2 (Einde ochtend):</label>
+                        <input type="date" id="dialysis-date-2" class="w-full mt-1 p-2 border rounded-xl bg-gray-50">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Pre-gewicht (kg):</label>
+                            <input type="number" step="0.1" id="pre-weight" placeholder="bijv. 112.5" class="w-full mt-1 p-2 border rounded-xl bg-gray-50" oninput="calculateUF()">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-600">Drooggewicht:</label>
+                            <input type="text" value="109 kg" disabled class="w-full mt-1 p-2 border rounded-xl bg-gray-200 text-gray-600 font-medium">
+                        </div>
+                    </div>
+
+                    <!-- UF Resultaat & Kleurcodering -->
+                    <div id="uf-result-box" class="p-3 rounded-xl border transition-colors bg-gray-100 border-gray-200">
+                        <p class="text-xs font-bold uppercase tracking-wider text-gray-500">UF Advies Formule</p>
+                        <p id="uf-output" class="text-xl font-bold mt-1">-- L</p>
+                        <p id="uf-status-text" class="text-xs mt-1 font-medium">Voer pre-gewicht in...</p>
+                    </div>
+
+                    <button onclick="saveDialysis()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold shadow-md active:bg-indigo-700">Dialyse Opslaan</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: ETEN & DRINKEN -->
+        <section id="tab-voeding" class="tab-content space-y-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-semibold text-indigo-600 mb-3">Drinken & Eten Bijhouden</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Type (Drinken / Eten):</label>
+                        <select id="food-type" class="w-full mt-1 p-2 border rounded-xl bg-gray-50">
+                            <option value="drinken">Drinken (Vocht)</option>
+                            <option value="eten">Eten / Maaltijd</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Omschrijving & Hoeveelheid (ml/g):</label>
+                        <input type="text" id="food-desc" placeholder="bijv. Water 250ml of Broodje" class="w-full mt-1 p-2 border rounded-xl bg-gray-50">
+                    </div>
+                    <button onclick="saveFood()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold shadow-md">Toevoegen</button>
+                </div>
+            </div>
+            <div id="food-list" class="space-y-2"></div>
+        </section>
+
+        <!-- TAB 3: MEDICIJNEN -->
+        <section id="tab-medicijnen" class="tab-content space-y-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-semibold text-indigo-600 mb-3">Medicijn Schema</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Medicijnnaam & Dosering:</label>
+                        <input type="text" id="med-name" placeholder="bijv. Fosfaatbinder 500mg" class="w-full mt-1 p-2 border rounded-xl bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Tijdstip:</label>
+                        <input type="time" id="med-time" class="w-full mt-1 p-2 border rounded-xl bg-gray-50">
+                    </div>
+                    <button onclick="saveMedication()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold shadow-md">Medicijn Opslaan</button>
+                </div>
+            </div>
+            <div id="med-list" class="space-y-2"></div>
+        </section>
+
+        <!-- TAB 4: VERVOER -->
+        <section id="tab-vervoer" class="tab-content space-y-4">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                <h2 class="text-lg font-semibold text-indigo-600 mb-3">Vervoer / Ritten</h2>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Bestemming / Afspraak:</label>
+                        <input type="text" id="transport-desc" placeholder="bijv. Dialysecentrum Taxi" class="w-full mt-1 p-2 border rounded-xl bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600">Datum & Tijd:</label>
+                        <input type="datetime-local" id="transport-date" class="w-full mt-1 p-2 border rounded-xl bg-gray-50">
+                    </div>
+                    <button onclick="saveTransport()" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold shadow-md">Rit Inplannen</button>
+                </div>
+            </div>
+            <div id="transport-list" class="space-y-2"></div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (Mobiel geoptimaliseerd) -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 shadow-lg z-50">
+        <div class="max-w-md mx-auto flex justify-around">
+            <button onclick="switchTab('dialyse')" id="nav-dialyse" class="flex flex-col items-center text-indigo-600 font-medium text-xs">
+                <span class="text-xl">🩺</span>Dialyse
+            </button>
+            <button onclick="switchTab('voeding')" id="nav-voeding" class="flex flex-col items-center text-gray-400 font-medium text-xs">
+                <span class="text-xl">💧</span>Voeding
+            </button>
+            <button onclick="switchTab('medicijnen')" id="nav-medicijnen" class="flex flex-col items-center text-gray-400 font-medium text-xs">
+                <span class="text-xl">💊</span>Medicijn
+            </button>
+            <button onclick="switchTab('vervoer')" id="nav-vervoer" class="flex flex-col items-center text-gray-400 font-medium text-xs">
+                <span class="text-xl">🚕</span>Vervoer
+            </button>
+        </div>
+    </nav>
+
+    <!-- Firebase SDK & App Script -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, add슐, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBmdTCE0AE8CQ9R-DL36bifn6p9hPwtm0s",
+          authDomain: "datakluis-fdc4a.firebaseapp.com",
+          projectId: "datakluis-fdc4a",
+          storageBucket: "datakluis-fdc4a.firebasestorage.app",
+          messagingSenderId: "97221438499",
+          appId: "1:97221438499:web:554415c0de9ff85f309596"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+
+        document.getElementById('sync-status').innerText = "Cloud Online 🟢";
+        loadAllData();
+    </script>
+
+    <script>
+        // Tab navigatie logica
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(el => {
+                el.classList.remove('text-indigo-600');
+                el.classList.add('text-gray-400');
+            });
+
+            document.getElementById('tab-' + tabName).classList.add('active');
+            document.getElementById('nav-' + tabName).classList.remove('text-gray-400');
+            document.getElementById('nav-' + tabName).classList.add('text-indigo-600');
+        }
+
+        // UF Berekening met jouw regels (drooggewicht = 109 kg, formule: pre - 109 + 0.3)
+        function calculateUF() {
+            const preWeight = parseFloat(document.getElementById('pre-weight').value);
+            const box = document.getElementById('uf-result-box');
+            const output = document.getElementById('uf-output');
+            const statusText = document.getElementById('uf-status-text');
+
+            if (isNaN(preWeight)) {
+                output.innerText = "-- L";
+                box.className = "p-3 rounded-xl border transition-colors bg-gray-100 border-gray-200";
+                statusText.innerText = "Voer pre-gewicht in...";
+                return;
+            }
+
+            const dryWeight = 109;
+            const uf = preWeight - dryWeight + 0.3;
+            output.innerText = uf.toFixed(2) + " L";
+
+            // Kleurcodering op basis van jouw instructie
+            if (uf >= 4.5) {
+                box.className = "p-3 rounded-xl border transition-colors bg-red-50 border-red-300 text-red-900";
+                statusText.innerText = "⚠️ Hoog UF-advies (>= 4.5)";
+            } else if (uf >= 4.0) {
+                box.className = "p-3 rounded-xl border transition-colors bg-amber-50 border-amber-300 text-amber-900";
+                statusText.innerText = "⚡ Matig UF-advies (>= 4.0)";
+            } else {
+                box.className = "p-3 rounded-xl border transition-colors bg-green-50 border-green-300 text-green-900";
+                statusText.innerText = "✅ Veilig UF-advies (< 4.0)";
+            }
+        }
+
+        // Functies om data op te slaan naar Firebase
+        async function saveDialysis() {
+            try {
+                const data = {
+                    date1: document.getElementById('dialysis-date-1').value,
+                    date2: document.getElementById('dialysis-date-2').value,
+                    preWeight: document.getElementById('pre-weight').value,
+                    dryWeight: 109,
+                    timestamp: new Date()
+                };
+                await window.addDoc(window.collection(window.db, "dialyse"), data);
+                alert("Dialyse gegevens succesvol opgeslagen in je Datakluis!");
+            } catch (e) {
+                alert("Fout bij opslaan: " + e.message);
+            }
+        }
+
+        async function saveFood() {
+            try {
+                const data = {
+                    type: document.getElementById('food-type').value,
+                    description: document.getElementById('food-desc').value,
+                    timestamp: new Date()
+                };
+                await window.addDoc(window.collection(window.db, "voeding"), data);
+                document.getElementById('food-desc').value = '';
+                alert("Voeding/Drinken opgeslagen!");
+                loadAllData();
+            } catch (e) {
+                alert("Fout: " + e.message);
+            }
+        }
+
+        async function saveMedication() {
+            try {
+                const data = {
+                    name: document.getElementById('med-name').value,
+                    time: document.getElementById('med-time').value,
+                    timestamp: new Date()
+                };
+                await window.addDoc(window.collection(window.db, "medicijnen"), data);
+                document.getElementById('med-name').value = '';
+                alert("Medicijn opgeslagen!");
+                loadAllData();
+            } catch (e) {
+                alert("Fout: " + e.message);
+            }
+        }
+
+        async function saveTransport() {
+            try {
+                const data = {
+                    description: document.getElementById('transport-desc').value,
+                    date: document.getElementById('transport-date').value,
+                    timestamp: new Date()
+                };
+                await window.addDoc(window.collection(window.db, "vervoer"), data);
+                document.getElementById('transport-desc').value = '';
+                alert("Rit ingepland!");
+                loadAllData();
+            } catch (e) {
+                alert("Fout: " + e.message);
+            }
+        }
+
+        async function loadAllData() {
+            if (!window.db) return;
+            // Hier kun je evt. lijsten ophalen en tonen in de UI
+        }
+    </script>
+</body>
+</html>
