@@ -74,16 +74,18 @@
                         </div>
                     </div>
 
-                    <!-- Verpleging Selectie (Meerdere selecteerbaar) -->
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Aanwezige Verpleging (Houd Ctrl/Cmd ingedrukt om er meerdere te kiezen):</label>
+                    <!-- Verpleging Selectie & Toevoegen -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-medium text-gray-600">Aanwezige Verpleging (Meerdere selecteerbaar):</label>
                         <select id="nurses-select" multiple class="w-full p-2 border rounded-xl bg-gray-50 text-sm h-24" onchange="autoSaveDraft()">
-                            <option value="Jan">Jan</option>
-                            <option value="Sophie">Sophie</option>
-                            <option value="Mohammed">Mohammed</option>
-                            <option value="Lisa">Lisa</option>
-                            <option value="Anja">Anja</option>
+                            <!-- Wordt dynamisch gevuld -->
                         </select>
+                        
+                        <!-- Veldje om nieuwe verpleging toe te voegen -->
+                        <div class="flex gap-2">
+                            <input type="text" id="new-nurse-name" placeholder="Naam nieuwe verpleging..." class="flex-1 p-2 border rounded-xl bg-gray-50 text-sm">
+                            <button onclick="addNewNurse()" type="button" class="bg-gray-200 text-gray-700 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-300">Toevoegen</button>
+                        </div>
                     </div>
 
                     <!-- Verslag / Notities -->
@@ -197,7 +199,8 @@
 
         document.getElementById('sync-status').innerText = "Cloud Online 🟢";
         
-        // Laad eventuele opgeslagen concept data bij opstarten
+        // Laad verpleging lijst en concept bij opstarten
+        initNursesList();
         loadDraft();
     </script>
 
@@ -214,7 +217,50 @@
             document.getElementById('nav-' + tabName).classList.add('text-indigo-600');
         }
 
-        // Functie om automatisch tijdelijk op te slaan in de browser (LocalStorage)
+        // Standaard verpleging en opslag in browser
+        function getNursesList() {
+            const saved = localStorage.getItem('tasker_nurses_list');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+            return ["Jan", "Sophie", "Mohammed", "Lisa", "Anja"];
+        }
+
+        function initNursesList() {
+            const select = document.getElementById('nurses-select');
+            const nurses = getNursesList();
+            select.innerHTML = '';
+            nurses.forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.innerText = name;
+                select.appendChild(opt);
+            });
+        }
+
+        function addNewNurse() {
+            const input = document.getElementById('new-nurse-name');
+            const name = input.value.trim();
+            if (!name) return;
+
+            let nurses = getNursesList();
+            if (!nurses.includes(name)) {
+                nurses.push(name);
+                localStorage.setItem('tasker_nurses_list', JSON.stringify(nurses));
+                initNursesList();
+                
+                // Selecteer direct de net toegevoegde verpleegkundige
+                const select = document.getElementById('nurses-select');
+                for (let opt of select.options) {
+                    if (opt.value === name) opt.selected = true;
+                }
+                input.value = '';
+                autoSaveDraft();
+            } else {
+                alert("Deze naam staat al in de lijst.");
+            }
+        }
+
         function autoSaveDraft() {
             const nursesSelect = document.getElementById('nurses-select');
             const selectedNurses = Array.from(nursesSelect.selectedOptions).map(opt => opt.value);
@@ -233,7 +279,6 @@
             localStorage.setItem('tasker_dialysis_draft', JSON.stringify(draft));
         }
 
-        // Functie om tijdelijk opgeslagen concept terug te zetten
         function loadDraft() {
             const saved = localStorage.getItem('tasker_dialysis_draft');
             if (saved) {
@@ -314,10 +359,7 @@
                 };
 
                 await window.addDoc(window.collection(window.db, "dialyse"), data);
-                
-                // Wis het concept zodra het definitief is opgeslagen in de cloud
                 localStorage.removeItem('tasker_dialysis_draft');
-                
                 alert("Dialyse sessie definitief opgeslagen in je Datakluis!");
             } catch (e) {
                 alert("Fout bij opslaan: " + e.message);
